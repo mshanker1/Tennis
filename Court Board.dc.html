@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+  body { margin: 0; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #D8D8D5; border-radius: 4px; }
+  input[type="time"] { font-family: inherit; }
+</style>
+</helmet>
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: #FAFAFA; color: #1A1A1A; min-height: 100vh; padding: 32px 40px 56px;">
+
+  <div style="max-width: 980px; margin: 0 auto;">
+
+    <div style="margin-bottom: 24px;">
+      <div style="font-size: 26px; font-weight: 700; letter-spacing: -0.01em;">Court Board</div>
+      <div style="font-size: 14px; color: #767676; margin-top: 4px;">Reservable window: today through {{ windowEndLabel }} — courts open up to 7 days ahead per club rule. Courts book in fixed windows: doubles 2 hours, singles 90 minutes. Mark the days you're free, then whoever grabs a court time locks in who's playing.</div>
+      <div style="font-size: 12px; color: {{ syncColor }}; margin-top: 6px; font-weight: 600;">{{ syncLabel }}</div>
+    </div>
+
+    <div style="display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; padding: 16px; background: #fff; border: 1px solid #E3E3E1; border-radius: 8px;">
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <label style="font-size: 11px; font-weight: 600; color: #767676; text-transform: uppercase; letter-spacing: 0.04em;">You are</label>
+        <select value="{{ currentPlayer }}" onChange="{{ onPlayerChange }}" style="font-size: 14px; padding: 7px 10px; border-radius: 6px; border: 1px solid #D5D5D2; background: #fff; color: #1A1A1A; min-width: 160px;">
+          <option value="">Select your name</option>
+          <sc-for list="{{ playerOptions }}" as="p" hint-placeholder-count="12">
+            <option value="{{ p }}">{{ p }}</option>
+          </sc-for>
+        </select>
+      </div>
+    </div>
+
+    <details style="margin-bottom: 16px; background: #fff; border: 1px solid #E3E3E1; border-radius: 8px; padding: 12px 16px;">
+      <summary style="font-size: 13px; font-weight: 700; cursor: pointer; color: #444;">Manage players</summary>
+      <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px; max-width: 320px;">
+        <sc-for list="{{ rosterEditorList }}" as="rp" hint-placeholder-count="12">
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <input type="text" value="{{ rp.name }}" onChange="{{ rp.onChange }}" style="flex: 1; font-size: 13px; padding: 5px 8px; border-radius: 5px; border: 1px solid #D5D5D2;"/>
+            <div onClick="{{ rp.onRemove }}" style="font-size: 11.5px; color: #B0463C; cursor: pointer; white-space: nowrap;">Remove</div>
+          </div>
+        </sc-for>
+        <div style="display: flex; gap: 6px; margin-top: 6px;">
+          <input type="text" placeholder="New player name" value="{{ newPlayerName }}" onChange="{{ onNewPlayerNameChange }}" style="flex: 1; font-size: 13px; padding: 5px 8px; border-radius: 5px; border: 1px solid #D5D5D2;"/>
+          <button onClick="{{ onAddPlayer }}" style="font-size: 12.5px; font-weight: 600; padding: 5px 10px; border-radius: 5px; border: none; background: oklch(0.42 0.09 155); color: #fff; cursor: pointer;">Add</button>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center; margin-top: 12px;">
+          <div onClick="{{ onResetSchedule }}" style="font-size: 11.5px; color: #B0463C; cursor: pointer; font-weight: 600;">{{ resetLabel }}</div>
+          <sc-if value="{{ confirmingReset }}" hint-placeholder-val="{{ false }}">
+            <div onClick="{{ onCancelReset }}" style="font-size: 11.5px; color: #767676; cursor: pointer;">Cancel</div>
+          </sc-if>
+        </div>
+      </div>
+    </details>
+
+    <sc-if value="{{ needsName }}" hint-placeholder-val="{{ false }}">
+      <div style="background: oklch(0.95 0.025 155); border: 1px solid oklch(0.42 0.09 155); color: oklch(0.3 0.07 155); font-size: 13px; padding: 10px 14px; border-radius: 6px; margin-bottom: 16px;">Select your name above to mark availability or reserve a court.</div>
+    </sc-if>
+
+    <div style="font-size: 15px; font-weight: 700; margin-bottom: 10px;">Who's free this week</div>
+    <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; margin-bottom: 24px;">
+      <sc-for list="{{ dayCards }}" as="d" hint-placeholder-count="8">
+        <div style="{{ d.cardStyle }}">
+          <div style="{{ d.headerStyle }}">{{ d.wd }}</div>
+          <div style="font-size: 11px; color: #999; margin-bottom: 8px;">{{ d.num }}</div>
+          <div style="display: flex; flex-direction: column; gap: 3px; flex: 1;">
+            <sc-for list="{{ d.availableChips }}" as="chip" hint-placeholder-count="2">
+              <div onClick="{{ chip.onClick }}" title="{{ chip.title }}" style="{{ chip.style }}">{{ chip.label }}</div>
+            </sc-for>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin-top: 6px;">
+            <sc-for list="{{ d.segmentButtons }}" as="seg" hint-placeholder-count="4">
+              <button onClick="{{ seg.onClick }}" style="{{ seg.style }}">{{ seg.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="background: #fff; border: 1px solid #E3E3E1; border-radius: 8px; padding: 18px; margin-bottom: 24px;">
+      <div style="font-size: 15px; font-weight: 700; margin-bottom: 14px;">Reserve a court</div>
+      <div style="display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 14px;">
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 11px; font-weight: 600; color: #767676; text-transform: uppercase; letter-spacing: 0.04em;">Day</label>
+          <select value="{{ draftDay }}" onChange="{{ onDraftDayChange }}" style="font-size: 14px; padding: 7px 10px; border-radius: 6px; border: 1px solid #D5D5D2; background: #fff; min-width: 130px;">
+            <sc-for list="{{ dayOptions }}" as="o" hint-placeholder-count="8">
+              <option value="{{ o.value }}">{{ o.label }}</option>
+            </sc-for>
+          </select>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 11px; font-weight: 600; color: #767676; text-transform: uppercase; letter-spacing: 0.04em;">Type</label>
+          <div style="display: flex; border: 1px solid #D5D5D2; border-radius: 6px; overflow: hidden;">
+            <button onClick="{{ onSetDoubles }}" style="{{ doublesBtnStyle }}">Doubles · 2h</button>
+            <button onClick="{{ onSetSingles }}" style="{{ singlesBtnStyle }}">Singles · 90m</button>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 11px; font-weight: 600; color: #767676; text-transform: uppercase; letter-spacing: 0.04em;">Start time</label>
+          <input type="time" value="{{ draftTime }}" onChange="{{ onDraftTimeChange }}" style="font-size: 14px; padding: 6px 10px; border-radius: 6px; border: 1px solid #D5D5D2; background: #fff;"/>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 11px; font-weight: 600; color: #767676; text-transform: uppercase; letter-spacing: 0.04em;">Court (optional)</label>
+          <input type="text" placeholder="e.g. 2" value="{{ draftCourt }}" onChange="{{ onDraftCourtChange }}" style="font-size: 14px; padding: 6px 10px; border-radius: 6px; border: 1px solid #D5D5D2; background: #fff; width: 90px;"/>
+        </div>
+      </div>
+
+      <div style="font-size: 11px; font-weight: 600; color: #767676; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px;">Players — tap to add ({{ selectedCount }}/{{ requiredCount }}). Highlighted names said they're free that day.</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px;">
+        <sc-for list="{{ rosterChips }}" as="c" hint-placeholder-count="12">
+          <div onClick="{{ c.onClick }}" style="{{ c.style }}">{{ c.name }}</div>
+        </sc-for>
+      </div>
+
+      <button onClick="{{ onConfirm }}" style="{{ confirmBtnStyle }}">Confirm reservation ({{ selectedCount }}/{{ requiredCount }})</button>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+      <div style="background: #fff; border: 1px solid #E3E3E1; border-radius: 8px; padding: 18px;">
+        <div style="font-size: 15px; font-weight: 700; margin-bottom: 12px;">Your games this week</div>
+        <sc-if value="{{ hasMyMatches }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <sc-for list="{{ myMatchesList }}" as="m" hint-placeholder-count="2">
+              <div style="display: flex; align-items: baseline; gap: 10px; padding: 10px 12px; background: oklch(0.97 0.012 155); border-radius: 6px; font-size: 13px;">
+                <div style="font-weight: 700; min-width: 56px;">{{ m.dayLabel }}</div>
+                <div style="color: #767676; min-width: 118px;">{{ m.timeRange }}</div>
+                <div style="color: #444;">{{ m.typeLabel }} with {{ m.others }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <div style="{{ emptyMineStyle }}">No confirmed games yet — reserve a court above.</div>
+      </div>
+
+      <div style="background: #fff; border: 1px solid #E3E3E1; border-radius: 8px; padding: 18px;">
+        <div style="font-size: 15px; font-weight: 700; margin-bottom: 12px;">Full club schedule — {{ allMatchesCount }} confirmed</div>
+        <div style="display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow: auto;">
+          <sc-for list="{{ allMatchesList }}" as="m" hint-placeholder-count="4">
+            <div style="display: flex; align-items: baseline; gap: 10px; padding: 8px 10px; border-bottom: 1px solid #F0F0EE; font-size: 12.5px;">
+              <div style="font-weight: 700; min-width: 52px;">{{ m.dayLabel }}</div>
+              <div style="color: #767676; min-width: 108px;">{{ m.timeRange }}</div>
+              <div style="color: #767676; min-width: 40px;">{{ m.courtLabel }}</div>
+              <div style="color: #444; flex: 1;">{{ m.playersLabel }}</div>
+              <div onClick="{{ m.onCancel }}" style="color: #B0463C; font-size: 11.5px; cursor: pointer; white-space: nowrap;">Cancel</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100" height="100" fill="oklch(0.42 0.09 155)"/>
+    <circle cx="50" cy="50" r="28" fill="none" stroke="#fff" stroke-width="4"/>
+    <line x1="22" y1="50" x2="78" y2="50" stroke="#fff" stroke-width="4"/>
+  </svg>
+</template>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const ACCENT = 'oklch(0.42 0.09 155)';
+const ACCENT_LIGHT = 'oklch(0.95 0.025 155)';
+const TEXT = '#1A1A1A';
+const MUTED = '#767676';
+
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyA8tmQ1KhqTyzaa0mHgGf8vM51f7XydNbw",
+  authDomain: "tennis-schedule-5688e.firebaseapp.com",
+  databaseURL: "https://tennis-schedule-5688e-default-rtdb.firebaseio.com/",
+  projectId: "tennis-schedule-5688e",
+  storageBucket: "tennis-schedule-5688e.firebasestorage.app",
+  messagingSenderId: "495004606574",
+  appId: "1:495004606574:web:720e0c8a9dd7a77d90c67f",
+};
+
+class Component extends DCLogic {
+  PLAYERS = ['Alex', 'Priya', 'Marcus', 'Dana', 'Sam', 'Yuki', 'Chris', 'Nina', 'Owen', 'Tara', 'Leo', 'Maya'];
+
+  state = {
+    roster: [],
+    availability: {},
+    reservations: [],
+    currentPlayer: null,
+    draftDay: 0,
+    draftType: 'doubles',
+    draftTime: '18:00',
+    draftCourt: '',
+    draftPlayers: [],
+    newPlayerName: '',
+    synced: false,
+  };
+
+  componentDidMount() {
+    const currentPlayer = localStorage.getItem('courtboard_player') || null;
+    this.setState({ currentPlayer });
+    this.loadFirebaseScripts();
+  }
+
+  loadFirebaseScripts() {
+    const s1 = document.createElement('script');
+    s1.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js';
+    s1.async = true;
+    s1.onload = () => {
+      const s2 = document.createElement('script');
+      s2.src = 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js';
+      s2.async = true;
+      s2.onload = () => this.initFirebase(0);
+      s2.onerror = () => this.setState({ syncError: true });
+      document.head.appendChild(s2);
+    };
+    s1.onerror = () => this.setState({ syncError: true });
+    document.head.appendChild(s1);
+  }
+
+  initFirebase(attempt) {
+    if (typeof firebase === 'undefined' || !firebase.database) {
+      if (attempt > 50) { this.setState({ syncError: true }); return; }
+      setTimeout(() => this.initFirebase(attempt + 1), 100);
+      return;
+    }
+    const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(FIREBASE_CONFIG);
+    this.db = firebase.database(app);
+
+    this.db.ref('roster').on('value', snap => {
+      const val = snap.val();
+      if (val) this.setState({ roster: val, synced: true }, () => this.purgeStaleNames());
+      else this.db.ref('roster').set(this.PLAYERS.slice());
+    });
+    this.db.ref('availability').on('value', snap => {
+      const val = snap.val();
+      if (val) this.setState({ availability: this.migrateAvailability(val), synced: true }, () => this.purgeStaleNames());
+      else this.db.ref('availability').set(this.generateSeedAvailability());
+    });
+    this.db.ref('reservations').on('value', snap => {
+      const val = snap.val();
+      if (val) this.setState({ reservations: Array.isArray(val) ? val : Object.values(val), synced: true }, () => this.purgeStaleNames());
+      else this.db.ref('reservations').set(this.generateSeedReservations());
+    });
+  }
+
+  purgeStaleNames() {
+    const roster = this.state.roster;
+    if (!roster || !roster.length) return;
+    const rosterSet = new Set(roster);
+    let changedAvail = false;
+    const availability = {};
+    Object.keys(this.state.availability || {}).forEach(k => {
+      const day = this.state.availability[k] || {};
+      const clean = arr => {
+        const out = (arr || []).filter(n => rosterSet.has(n));
+        if (out.length !== (arr || []).length) changedAvail = true;
+        return out;
+      };
+      availability[k] = { allDay: clean(day.allDay), morning: clean(day.morning), afternoon: clean(day.afternoon), evening: clean(day.evening) };
+    });
+    if (changedAvail) this.db.ref('availability').set(availability);
+
+    const reservations = (this.state.reservations || []).filter(r => r.players.every(p => rosterSet.has(p)));
+    if (reservations.length !== (this.state.reservations || []).length) this.db.ref('reservations').set(reservations);
+  }
+
+  resetScheduleData() {
+    if (!this.state.confirmingReset) {
+      this.setState({ confirmingReset: true });
+      return;
+    }
+    this.setState({ confirmingReset: false });
+    this.db.ref('availability').set(this.generateEmptyAvailability());
+    this.db.ref('reservations').set([]);
+  }
+
+  generateEmptyAvailability() {
+    const availability = {};
+    for (let day = 0; day < 8; day++) availability[day] = { allDay: [], morning: [], afternoon: [], evening: [] };
+    return availability;
+  }
+
+  renamePlayer(oldName, newName) {
+    if (!newName || oldName === newName) return;
+    const roster = this.state.roster.map(n => (n === oldName ? newName : n));
+    const availability = {};
+    Object.keys(this.state.availability).forEach(k => {
+      const day = this.state.availability[k] || {};
+      const swap = arr => (arr || []).map(n => (n === oldName ? newName : n));
+      availability[k] = { allDay: swap(day.allDay), morning: swap(day.morning), afternoon: swap(day.afternoon), evening: swap(day.evening) };
+    });
+    const reservations = this.state.reservations.map(r => ({ ...r, players: r.players.map(p => (p === oldName ? newName : p)) }));
+    const currentPlayer = this.state.currentPlayer === oldName ? newName : this.state.currentPlayer;
+    const draftPlayers = this.state.draftPlayers.map(p => (p === oldName ? newName : p));
+    this.setState({ currentPlayer, draftPlayers });
+    if (currentPlayer) localStorage.setItem('courtboard_player', currentPlayer);
+    this.db.ref('roster').set(roster);
+    this.db.ref('availability').set(availability);
+    this.db.ref('reservations').set(reservations);
+  }
+
+  addPlayer() {
+    const name = (this.state.newPlayerName || '').trim();
+    if (!name || this.state.roster.includes(name)) return;
+    const roster = this.state.roster.concat([name]);
+    this.setState({ newPlayerName: '' });
+    this.db.ref('roster').set(roster);
+  }
+
+  removePlayer(name) {
+    const roster = this.state.roster.filter(n => n !== name);
+    const availability = {};
+    Object.keys(this.state.availability).forEach(k => {
+      const day = this.state.availability[k] || {};
+      availability[k] = {
+        allDay: (day.allDay || []).filter(n => n !== name),
+        morning: (day.morning || []).filter(n => n !== name),
+        afternoon: (day.afternoon || []).filter(n => n !== name),
+        evening: (day.evening || []).filter(n => n !== name),
+      };
+    });
+    const currentPlayer = this.state.currentPlayer === name ? null : this.state.currentPlayer;
+    const draftPlayers = this.state.draftPlayers.filter(p => p !== name);
+    this.setState({ currentPlayer, draftPlayers });
+    if (!currentPlayer) localStorage.removeItem('courtboard_player');
+    this.db.ref('roster').set(roster);
+    this.db.ref('availability').set(availability);
+  }
+
+  generateSeedAvailability() {
+    const availability = {};
+    for (let day = 0; day < 8; day++) {
+      availability[day] = { allDay: [], morning: [], afternoon: [], evening: [] };
+      this.PLAYERS.forEach((p, pi) => {
+        const seedVal = Math.sin(pi * 91.7 + day * 17.3) * 10000;
+        const r = seedVal - Math.floor(seedVal);
+        if (r < 0.15) availability[day].allDay.push(p);
+        else if (r < 0.25) availability[day].morning.push(p);
+        else if (r < 0.35) availability[day].afternoon.push(p);
+        else if (r < 0.42) availability[day].evening.push(p);
+      });
+    }
+    return availability;
+  }
+
+  migrateAvailability(val) {
+    const out = {};
+    Object.keys(val).forEach(k => {
+      const v = val[k];
+      out[k] = Array.isArray(v) ? { allDay: v, morning: [], afternoon: [], evening: [] } : { allDay: v.allDay || [], morning: v.morning || [], afternoon: v.afternoon || [], evening: v.evening || [] };
+    });
+    return out;
+  }
+
+  generateSeedReservations() {
+    const P = this.PLAYERS;
+    return [
+      { id: 'r1', dayIndex: 1, type: 'doubles', time: '18:00', court: '1', players: [P[0], P[1], P[2], P[3]] },
+      { id: 'r2', dayIndex: 2, type: 'singles', time: '07:00', court: '', players: [P[4], P[5]] },
+      { id: 'r3', dayIndex: 3, type: 'doubles', time: '19:00', court: '3', players: [P[6], P[7], P[0], P[8]] },
+      { id: 'r4', dayIndex: 5, type: 'doubles', time: '09:00', court: '', players: [P[9], P[10], P[11], P[1]] },
+      { id: 'r5', dayIndex: 6, type: 'singles', time: '17:30', court: '2', players: [P[2], P[3]] },
+    ];
+  }
+
+  setCurrentPlayer(name) {
+    this.setState({ currentPlayer: name });
+    localStorage.setItem('courtboard_player', name);
+  }
+
+  toggleAvailability(dayIndex, segment) {
+    if (!this.state.currentPlayer) return;
+    const availability = { ...this.state.availability };
+    const day = availability[dayIndex] || {};
+    const next = { allDay: (day.allDay || []).slice(), morning: (day.morning || []).slice(), afternoon: (day.afternoon || []).slice(), evening: (day.evening || []).slice() };
+    const wasIn = next[segment].includes(this.state.currentPlayer);
+    ['allDay', 'morning', 'afternoon', 'evening'].forEach(seg => {
+      const i = next[seg].indexOf(this.state.currentPlayer);
+      if (i >= 0) next[seg].splice(i, 1);
+    });
+    if (!wasIn) next[segment].push(this.state.currentPlayer);
+    availability[dayIndex] = next;
+    this.db.ref('availability').set(availability);
+  }
+
+  toggleDraftPlayer(name) {
+    const required = this.state.draftType === 'doubles' ? 4 : 2;
+    let players = this.state.draftPlayers.slice();
+    const idx = players.indexOf(name);
+    if (idx >= 0) players.splice(idx, 1);
+    else if (players.length < required) players.push(name);
+    this.setState({ draftPlayers: players });
+  }
+
+  setDraftType(type) {
+    const required = type === 'doubles' ? 4 : 2;
+    let players = this.state.draftPlayers.slice(0, required);
+    this.setState({ draftType: type, draftPlayers: players });
+  }
+
+  confirmReservation() {
+    const required = this.state.draftType === 'doubles' ? 4 : 2;
+    if (this.state.draftPlayers.length !== required || !this.state.draftTime) return;
+    const reservation = {
+      id: 'r' + Date.now(),
+      dayIndex: Number(this.state.draftDay),
+      type: this.state.draftType,
+      time: this.state.draftTime,
+      court: this.state.draftCourt,
+      players: this.state.draftPlayers.slice(),
+    };
+    const reservations = this.state.reservations.concat([reservation]);
+    this.setState({ draftPlayers: [], draftCourt: '' });
+    this.db.ref('reservations').set(reservations);
+  }
+
+  cancelReservation(id) {
+    const reservations = this.state.reservations.filter(r => r.id !== id);
+    this.db.ref('reservations').set(reservations);
+  }
+
+  weekday(d) {
+    return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
+  }
+
+  formatClock(totalMins) {
+    let h = Math.floor(totalMins / 60) % 24;
+    const m = totalMins % 60;
+    const suffix = h < 12 ? 'AM' : 'PM';
+    let hh = h % 12;
+    if (hh === 0) hh = 12;
+    return hh + ':' + String(m).padStart(2, '0') + ' ' + suffix;
+  }
+
+  timeRange(time, type) {
+    const [h, m] = time.split(':').map(Number);
+    const start = h * 60 + m;
+    const duration = type === 'doubles' ? 120 : 90;
+    return this.formatClock(start) + ' \u2013 ' + this.formatClock(start + duration);
+  }
+
+  renderVals() {
+    const currentPlayer = this.state.currentPlayer;
+    const availability = this.state.availability || {};
+    const reservations = this.state.reservations || [];
+
+    const today = new Date();
+    const days = [];
+    for (let i = 0; i < 8; i++) {
+      days.push({ index: i, date: new Date(today.getFullYear(), today.getMonth(), today.getDate() + i), isToday: i === 0 });
+    }
+
+    const MORNING_TINT = 'oklch(0.93 0.035 155)';
+    const AFTERNOON_TINT = 'oklch(0.87 0.05 155)';
+    const EVENING_TINT = 'oklch(0.80 0.06 155)';
+    const SEG_DEFS = [
+      { key: 'allDay', label: 'All day' },
+      { key: 'morning', label: 'AM' },
+      { key: 'afternoon', label: 'Noon' },
+      { key: 'evening', label: 'Eve' },
+    ];
+
+    const dayCards = days.map(d => {
+      const raw = availability[d.index] || {};
+      const day = { allDay: raw.allDay || [], morning: raw.morning || [], afternoon: raw.afternoon || [], evening: raw.evening || [] };
+      const gradParts = [];
+      if ((day.morning || []).length) gradParts.push(MORNING_TINT + ' 0%, ' + MORNING_TINT + ' 33.33%');
+      else gradParts.push('#fff 0%, #fff 33.33%');
+      if ((day.afternoon || []).length) gradParts.push(AFTERNOON_TINT + ' 33.33%, ' + AFTERNOON_TINT + ' 66.66%');
+      else gradParts.push('#fff 33.33%, #fff 66.66%');
+      if ((day.evening || []).length) gradParts.push(EVENING_TINT + ' 66.66%, ' + EVENING_TINT + ' 100%');
+      else gradParts.push('#fff 66.66%, #fff 100%');
+      const bg = (day.morning.length || day.afternoon.length || day.evening.length) ? 'linear-gradient(to bottom, ' + gradParts.join(', ') + ')' : '#fff';
+
+      const allChips = [];
+      SEG_DEFS.forEach(seg => {
+        (day[seg.key] || []).forEach(name => {
+          const mine = name === currentPlayer;
+          allChips.push({
+            label: mine ? name + ' \u2715 ' + (seg.key === 'allDay' ? '' : seg.label) : name + (seg.key === 'allDay' ? '' : ' \u00b7 ' + seg.label),
+            title: mine ? 'Click to remove yourself' : name + ' — ' + seg.label,
+            onClick: mine ? () => this.toggleAvailability(d.index, seg.key) : undefined,
+            style: mine
+              ? { fontSize: '11.5px', color: ACCENT, background: '#fff', border: '1px solid ' + ACCENT, borderRadius: '4px', padding: '2px 6px', cursor: 'pointer', fontWeight: 600 }
+              : { fontSize: '11.5px', color: '#333', background: 'rgba(255,255,255,0.65)', borderRadius: '4px', padding: '2px 6px' },
+          });
+        });
+      });
+
+      const mySegment = SEG_DEFS.find(seg => (day[seg.key] || []).includes(currentPlayer));
+
+      return {
+        index: d.index,
+        wd: this.weekday(d.date),
+        num: String(d.date.getDate()),
+        cardStyle: { background: bg, border: '1px solid #E3E3E1', borderRadius: '8px', padding: '10px', minHeight: '160px', display: 'flex', flexDirection: 'column' },
+        headerStyle: { fontSize: '13px', fontWeight: d.isToday ? 800 : 600, color: d.isToday ? ACCENT : TEXT },
+        availableChips: allChips,
+        segmentButtons: SEG_DEFS.map(seg => {
+          const active = mySegment && mySegment.key === seg.key;
+          return {
+            label: seg.label,
+            style: {
+              fontSize: '10.5px', padding: '5px 2px', borderRadius: '4px', border: '1px solid ' + (active ? ACCENT : '#D5D5D2'),
+              background: active ? ACCENT : 'rgba(255,255,255,0.85)', color: active ? '#fff' : MUTED, fontWeight: 600,
+              cursor: currentPlayer ? 'pointer' : 'not-allowed', opacity: currentPlayer ? 1 : 0.5,
+            },
+            onClick: () => this.toggleAvailability(d.index, seg.key),
+          };
+        }),
+      };
+    });
+
+    const dayOptions = days.map(d => ({ value: d.index, label: this.weekday(d.date) + ' ' + d.date.getDate() + (d.isToday ? ' (Today)' : '') }));
+
+    const draftDay = this.state.draftDay;
+    const draftType = this.state.draftType;
+    const draftPlayers = this.state.draftPlayers;
+    const required = draftType === 'doubles' ? 4 : 2;
+    const draftDayAvail = availability[draftDay] || {};
+    const availableToday = [].concat(draftDayAvail.allDay || [], draftDayAvail.morning || [], draftDayAvail.afternoon || [], draftDayAvail.evening || []);
+
+    const roster = this.state.roster;
+    const rosterChips = roster.map(name => {
+      const selected = draftPlayers.includes(name);
+      const isAvail = availableToday.includes(name);
+      let style;
+      if (selected) style = { padding: '6px 12px', borderRadius: '16px', fontSize: '13px', fontWeight: 700, background: ACCENT, color: '#fff', cursor: 'pointer' };
+      else if (isAvail) style = { padding: '6px 12px', borderRadius: '16px', fontSize: '13px', fontWeight: 600, background: ACCENT_LIGHT, color: ACCENT, border: '1.5px solid ' + ACCENT, cursor: 'pointer' };
+      else style = { padding: '6px 12px', borderRadius: '16px', fontSize: '13px', fontWeight: 500, background: '#F5F5F3', color: MUTED, border: '1px solid #E3E3E1', cursor: 'pointer' };
+      return { name, style, onClick: () => this.toggleDraftPlayer(name) };
+    });
+
+    const activeBtn = { flex: 1, padding: '7px 12px', fontSize: '13px', fontWeight: 700, border: 'none', background: ACCENT, color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap' };
+    const inactiveBtn = { flex: 1, padding: '7px 12px', fontSize: '13px', fontWeight: 500, border: 'none', background: '#fff', color: MUTED, cursor: 'pointer', whiteSpace: 'nowrap' };
+
+    const canConfirm = draftPlayers.length === required;
+    const confirmBtnStyle = {
+      padding: '10px 20px', fontSize: '13.5px', fontWeight: 700, borderRadius: '6px', border: 'none',
+      background: canConfirm ? ACCENT : '#E3E3E1', color: canConfirm ? '#fff' : '#999', cursor: canConfirm ? 'pointer' : 'not-allowed',
+    };
+
+    const sorted = reservations.slice().sort((a, b) => {
+      if (a.dayIndex !== b.dayIndex) return a.dayIndex - b.dayIndex;
+      return a.time.localeCompare(b.time);
+    });
+
+    const dayLabelShort = idx => this.weekday(days[idx].date) + ' ' + days[idx].date.getDate();
+
+    const allMatchesList = sorted.map(m => ({
+      dayLabel: dayLabelShort(m.dayIndex),
+      timeRange: this.timeRange(m.time, m.type),
+      courtLabel: m.court ? 'Ct ' + m.court : '\u2014',
+      playersLabel: (m.type === 'doubles' ? 'Doubles — ' : 'Singles — ') + m.players.join(', '),
+      onCancel: () => this.cancelReservation(m.id),
+    }));
+
+    const myMatchesList = sorted
+      .filter(m => m.players.includes(currentPlayer))
+      .map(m => ({
+        dayLabel: dayLabelShort(m.dayIndex),
+        timeRange: this.timeRange(m.time, m.type),
+        typeLabel: m.type === 'doubles' ? 'Doubles' : 'Singles',
+        others: m.players.filter(p => p !== currentPlayer).join(', '),
+      }));
+
+    const windowEndLabel = this.weekday(days[7].date) + ', ' + days[7].date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+    const rosterEditorList = roster.map(name => ({
+      name,
+      onChange: e => this.renamePlayer(name, e.target.value),
+      onRemove: () => this.removePlayer(name),
+    }));
+
+    return {
+      syncLabel: this.state.synced ? '● Live — synced with the group' : '○ Connecting...',
+      syncColor: this.state.synced ? ACCENT : MUTED,
+      playerOptions: roster,
+      rosterEditorList,
+      newPlayerName: this.state.newPlayerName,
+      onNewPlayerNameChange: e => this.setState({ newPlayerName: e.target.value }),
+      onAddPlayer: () => this.addPlayer(),
+      onResetSchedule: () => this.resetScheduleData(),
+      onCancelReset: () => this.setState({ confirmingReset: false }),
+      confirmingReset: !!this.state.confirmingReset,
+      resetLabel: this.state.confirmingReset ? 'Click again to confirm — clears everyone\u2019s data' : 'Clear all availability & reservations (start fresh)',
+      currentPlayer: currentPlayer || '',
+      onPlayerChange: e => this.setCurrentPlayer(e.target.value),
+      needsName: !currentPlayer,
+      dayCards,
+      dayOptions,
+      draftDay,
+      onDraftDayChange: e => this.setState({ draftDay: Number(e.target.value) }),
+      doublesBtnStyle: draftType === 'doubles' ? activeBtn : inactiveBtn,
+      singlesBtnStyle: draftType === 'singles' ? activeBtn : inactiveBtn,
+      onSetDoubles: () => this.setDraftType('doubles'),
+      onSetSingles: () => this.setDraftType('singles'),
+      draftTime: this.state.draftTime,
+      onDraftTimeChange: e => this.setState({ draftTime: e.target.value }),
+      draftCourt: this.state.draftCourt,
+      onDraftCourtChange: e => this.setState({ draftCourt: e.target.value }),
+      rosterChips,
+      requiredCount: required,
+      selectedCount: draftPlayers.length,
+      confirmBtnStyle,
+      onConfirm: () => this.confirmReservation(),
+      windowEndLabel,
+      hasMyMatches: myMatchesList.length > 0,
+      myMatchesList,
+      emptyMineStyle: myMatchesList.length > 0 ? { display: 'none' } : { fontSize: '13px', color: MUTED, padding: '8px 0' },
+      allMatchesList,
+      allMatchesCount: allMatchesList.length,
+    };
+  }
+}
+
+</script>
+</body>
+</html>
